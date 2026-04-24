@@ -1,0 +1,64 @@
+# This is a basic workflow to help you get started with Actions
+name: CI-CD Workflow
+# Controls when the workflow will run
+on:
+  # Triggers the workflow only on pull request events but only for the "main" branch
+  push:
+    branches:
+      - dev
+    paths:
+      - '.github/workflows/*'
+      - README.md
+      - ./*
+      - security/**
+
+
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths:
+      - '.github/workflows/*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  checkout-code:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+
+ #dependency-review:
+ #  needs: checkout-code
+ #  uses: SINGAPORE-POST-LIMITED/singpost-cicd-components/.github/workflows/reusable-workflow-dependency-review.yml
+ #  with:
+ #    config-file: './.github/dependency-review-config.yml'
+
+      
+  #sonar-scan:
+  #  needs: checkout-code
+  #  uses: ./.github/workflows/workflow-sonarqube.yml
+  #  with:
+  #    PROJECTID: 'singpost-cicd-components'
+  #    config-path: '.'
+  #  secrets: inherit
+  #  #secrets:
+  #  #  SONAR_TOKEN: "ZXCVBNMASDFGHJKL1234567890"
+  #  #  SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+  gitleaks-scan:
+    needs: checkout-code
+    #SINGAPORE-POST-LIMITED/singpost-cicd-components/.github/workflows/{filename}.yml@{ref}
+    uses: SINGAPORE-POST-LIMITED/singpost-cicd-components/.github/workflows/reusable-workflow-gitleaks.yml
+    with:
+      scan_mode: full
+      fail-on-detection: false  
+    secrets: inherit
+  
