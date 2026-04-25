@@ -1,64 +1,97 @@
-# This is a basic workflow to help you get started with Actions
-name: CI-CD Workflow
-# Controls when the workflow will run
+name: Standard CI/CD Pipeline
+
 on:
-  # Triggers the workflow only on pull request events but only for the "main" branch
   push:
     branches:
       - dev
-    paths:
-      - '.github/workflows/*'
-      - README.md
-      - ./*
-      - security/**
-
-
   pull_request:
     branches:
       - main
       - dev
-    paths:
-      - '.github/workflows/*'
-  workflow_dispatch:
-
 permissions:
   contents: read
   security-events: write
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  checkout-code:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
-
- #dependency-review:
- #  needs: checkout-code
- #  uses: SINGAPORE-POST-LIMITED/singpost-cicd-components/.github/workflows/reusable-workflow-dependency-review.yml
- #  with:
- #    config-file: './.github/dependency-review-config.yml'
-
-      
-  #sonar-scan:
-  #  needs: checkout-code
-  #  uses: ./.github/workflows/workflow-sonarqube.yml
-  #  with:
-  #    PROJECTID: 'singpost-cicd-components'
-  #    config-path: '.'
-  #  secrets: inherit
-  #  #secrets:
-  #  #  SONAR_TOKEN: "ZXCVBNMASDFGHJKL1234567890"
-  #  #  SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-
+  # ==========================================
+  # PARALLEL STAGE 1: FAST CHECKS
+  # ==========================================
   gitleaks-scan:
-    needs: checkout-code
-    #SINGAPORE-POST-LIMITED/singpost-cicd-components/.github/workflows/{filename}.yml@{ref}
     uses: SINGAPORE-POST-LIMITED/singpost-cicd-components/.github/workflows/reusable-workflow-gitleaks.yml@dev
     with:
       scan_mode: full
-      fail-on-detection: false  
+      fail-on-detection: false
     secrets: inherit
-  
+
+  app-ci-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      - run: |
+          echo "npm install..."
+          npm install || true
+          echo "npm test..."
+          npm test --if-present
+
+  # ==========================================
+  # STAGE 2: SECURITY SCANS
+  # ==========================================
+  security-scans:
+    needs: [gitleaks-scan, app-ci-test]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Mocking CodeQL & SonarQube"
+  #    - run: echo "Mocking Checkov"
+
+  # ==========================================
+  # PARALLEL STAGE 3: BUILD & DB MIGRATION
+  # ==========================================
+  build-and-push:
+    needs: security-scans
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Mocking Docker build"
+      - run: echo "Mocking GAR push"
+      - run: echo "Mocking Container Analysis"
+
+  database-migration:
+    needs: security-scans
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Mocking Flyway migration"
+
+  # ==========================================
+  # STAGE 4: DEPLOYMENTS
+  # ==========================================
+  deploy-dev:
+    needs: [build-and-push, database-migration]
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    environment: development
+    steps:
+      - run: echo "Mocking Terraform DEV"
+      - run: echo "Mocking Apigee DEV"
+      - run: echo "Mocking Cloud Deploy GKE DEV"
+
+  deploy-prod:
+    needs: [build-and-push, database-migration]
+    if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - run: echo "Mocking Terraform PROD"
+      - run: echo "Mocking Apigee PROD"
+      - run: echo "Mocking Cloud Deploy GKE PROD"
+
+  # ==========================================
+  # STAGE 5: NOTIFY
+  # ==========================================
+  notify:
+    if: always()
+    needs: [deploy-dev, deploy-prod]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Mocking GChat Webhook"
