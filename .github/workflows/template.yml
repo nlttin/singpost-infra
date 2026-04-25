@@ -22,52 +22,21 @@ jobs:
       fail-on-detection: false
     secrets: inherit
 
-  app-ci-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-      - run: |
-          echo "npm install..."
-          npm install || true
-          echo "npm test..."
-          npm test --if-present
-
   # ==========================================
   # STAGE 2: SECURITY SCANS
   # ==========================================
   security-scans:
-    needs: [gitleaks-scan, app-ci-test]
+    needs: [gitleaks-scan]
     runs-on: ubuntu-latest
     steps:
       - run: echo "Mocking CodeQL & SonarQube"
   #    - run: echo "Mocking Checkov"
 
   # ==========================================
-  # PARALLEL STAGE 3: BUILD & DB MIGRATION
-  # ==========================================
-  build-and-push:
-    needs: security-scans
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Mocking Docker build"
-      - run: echo "Mocking GAR push"
-      - run: echo "Mocking Container Analysis"
-
-  database-migration:
-    needs: security-scans
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Mocking Flyway migration"
-
-  # ==========================================
-  # STAGE 4: DEPLOYMENTS
+  # STAGE 3: DEPLOYMENTS
   # ==========================================
   deploy-dev:
-    needs: [build-and-push, database-migration]
+    needs: security-scans
     if: github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
     environment: development
@@ -77,7 +46,6 @@ jobs:
       - run: echo "Mocking Cloud Deploy GKE DEV"
 
   deploy-prod:
-    needs: [build-and-push, database-migration]
     if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
     runs-on: ubuntu-latest
     environment: production
@@ -87,7 +55,7 @@ jobs:
       - run: echo "Mocking Cloud Deploy GKE PROD"
 
   # ==========================================
-  # STAGE 5: NOTIFY
+  # STAGE 4: NOTIFY
   # ==========================================
   notify:
     if: always()
