@@ -1,0 +1,13 @@
+framework:
+  - terraform
+  - github_actions
+  - secrets
+
+quiet: true
+
+# skip-check:
+
+soft-fail: false
+
+output:
+  - cli
