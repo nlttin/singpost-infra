@@ -50,8 +50,8 @@ jobs:
     needs: [gitleaks-scan, checkov-scan]
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Mocking CodeQL & SonarQube"
-  #    - run: echo "Mocking Checkov"
+  #    - run: echo "Mocking CodeQL & SonarQube"
+      - run: echo "Mocking Checkov"
 
   # ==========================================
   # STAGE 3: DEPLOYMENTS
