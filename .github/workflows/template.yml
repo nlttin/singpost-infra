@@ -60,7 +60,7 @@ jobs:
     needs: security-scans
     if: github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
-    environment: development
+
     steps:
       - run: echo "Mocking Terraform DEV"
       - run: echo "Mocking Apigee DEV"
@@ -69,7 +69,7 @@ jobs:
   deploy-prod:
     if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
     runs-on: ubuntu-latest
-    environment: production
+
     steps:
       - run: echo "Mocking Terraform PROD"
       - run: echo "Mocking Apigee PROD"
