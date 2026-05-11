@@ -14,31 +14,44 @@ permissions:
   security-events: write
   actions: read
 
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
+  # This workflow contains a single job called "build"
+  checkout-code:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+
   # ==========================================
   # PARALLEL STAGE 1: FAST CHECKS
   # ==========================================
   gitleaks-scan:
-    uses: nlttin/singpost-cicd-components/.github/workflows/reusable-workflow-gitleaks.yml@dev
+    needs: checkout-code
+    uses: SINGAPORE-POST-LIMITED/singpost-cicd-components/.github/workflows/reusable-workflow-gitleaks.yml@dev
     with:
       scan_mode: full
       fail-on-detection: false
     secrets: inherit
 
   checkov-scan:
-    uses: nlttin/singpost-cicd-components/.github/workflows/reusable-workflow-checkov.yml@feature/checkov
+    needs: checkout-code
+    uses: SINGAPORE-POST-LIMITED/singpost-cicd-components/.github/workflows/reusable-workflow-checkov.yml@feature/checkov
     with:
       config-path: ./.github/config/checkov.yml
     secrets: inherit
 
   # ==========================================
-  # STAGE 2: SECURITY GATE
+  # STAGE 2: SECURITY SCANS
   # ==========================================
   security-scans:
     needs: [gitleaks-scan, checkov-scan]
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Security scans completed"
+      - run: echo "Mocking CodeQL & SonarQube"
+  #    - run: echo "Mocking Checkov"
 
   # ==========================================
   # STAGE 3: DEPLOYMENTS
@@ -47,15 +60,16 @@ jobs:
     needs: security-scans
     if: github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
+    environment: development
     steps:
       - run: echo "Mocking Terraform DEV"
       - run: echo "Mocking Apigee DEV"
       - run: echo "Mocking Cloud Deploy GKE DEV"
 
   deploy-prod:
-    needs: security-scans
     if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - run: echo "Mocking Terraform PROD"
       - run: echo "Mocking Apigee PROD"
