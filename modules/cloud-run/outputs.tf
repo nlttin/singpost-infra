@@ -11,9 +11,9 @@ output "service_account_email" {
 }
 
 output "vpc_connector_name" {
-  value = google_vpc_access_connector.connector.name
+  value = length(google_vpc_access_connector.connector) > 0 ? google_vpc_access_connector.connector[0].name : null
 }
 
 output "vpc_connector_id" {
-  value = google_vpc_access_connector.connector.id
+  value = length(google_vpc_access_connector.connector) > 0 ? google_vpc_access_connector.connector[0].id : null
 }

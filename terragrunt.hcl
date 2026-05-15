@@ -15,7 +15,7 @@ generate "provider_gcp" {
 
   contents = <<EOF
 terraform {
-  required_version = "~> 1.14.0"
+  required_version = ">= 1.14.0"
 
   required_providers {
     google = {
@@ -26,15 +26,15 @@ terraform {
 }
 
 provider "google" {
-  project = var.project_name
+  project = var.project_id
   region  = var.region
 }
 EOF
 }
 
 locals {
-  project_id     = "xxxxxxx" # Replace with your actual GCP project ID
-  project_number = "123456789012" # Replace with your actual GCP project number
+  project_id     = "project-a8a37a94-04a7-44bf-a2c"
+  project_number = "743479429318"
   project_name   = "sp-logistic"
   region         = "asia-southeast1"
   env            = basename(dirname(dirname(get_terragrunt_dir())))

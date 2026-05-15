@@ -77,9 +77,14 @@ resource "google_secret_manager_secret_iam_member" "gke_secret_access" {
   member    = "serviceAccount:${google_service_account.gke_workload_sa.email}"
 }
 
-# # Workload Identity binding - allows Kubernetes service account to impersonate Google service account
-# resource "google_service_account_iam_member" "workload_identity_binding" {
-#   service_account_id = google_service_account.gke_workload_sa.name
-#   role               = "roles/iam.workloadIdentityUser"
-#   member             = "serviceAccount:${var.project_id}.svc.id.goog[${var.k8s_namespace}/${var.k8s_service_account_name}]"
-# }
+# Workload Identity binding — links a Kubernetes SA to this Google SA.
+# This allows pods running under the K8s SA to call GCP APIs (Cloud SQL, Secret Manager)
+# using the Google SA's credentials, without mounting any key files.
+# The member format "project.svc.id.goog[namespace/k8s-sa]" is GKE-specific.
+# Docs: https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity
+# Terraform: https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/google_service_account_iam
+resource "google_service_account_iam_member" "workload_identity_binding" {
+  service_account_id = google_service_account.gke_workload_sa.name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[${var.k8s_namespace}/${var.k8s_service_account_name}]"
+}

@@ -33,7 +33,7 @@ dependency "secret_manager" {
 }
 
 terraform {
-  source = "../../../../modules/cloud-run"
+  source = "../../../../modules/cloud-run"xCiL1523ZFEDxsZiaWXnsM5x6H
 }
 
 inputs = {

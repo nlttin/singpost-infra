@@ -63,4 +63,8 @@ inputs = {
 
   # Secret Manager settings
   db_password_secret_id = dependency.secret_manager.outputs.db_password_secret_id
+
+  # Workload Identity — K8s SA that GKE pods will run as
+  k8s_namespace            = "default"
+  k8s_service_account_name = "singpost-dev-workload-sa"
 }

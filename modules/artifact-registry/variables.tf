@@ -47,6 +47,22 @@ variable "labels" {
   default = {}
 }
 
+# GHCR proxy remote repository
+variable "enable_ghcr_proxy" {
+  type    = bool
+  default = false
+}
+
+variable "ghcr_username" {
+  type    = string
+  default = ""
+}
+
+variable "ghcr_pat_secret_version" {
+  type    = string
+  default = ""
+}
+
 # # CMEK
 # variable "kms_key_name" {
 #   type    = string

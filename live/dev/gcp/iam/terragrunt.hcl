@@ -7,31 +7,35 @@ terraform {
 }
 
 inputs = {
-  # GitHub repository
-  github_owner  = "your-github-org"
-  github_repo   = "your-backend-api-repo"
-  github_branch = "main"
+  # GitHub — start with AppTracking; Ingestion/SFTP as separate stacks later
+  github_owner = "nlttin"
+  github_repo  = "singpost-app-tracking"
 
   # Workload Identity Federation
   workload_identity_pool_id          = "github-actions-pool"
   workload_identity_pool_provider_id = "github-actions-provider"
 
   # Service Account
-  service_account_id = "backend-api-github-actions-sa"
+  service_account_id = "singpost-dev-github-actions-sa"
 
-  # IAM roles for GitHub Actions
+  # IAM roles for GitHub Actions SA
+  # roles/cloudbuild.builds.editor → trigger Cloud Build jobs
+  # roles/run.admin                → deploy to Cloud Run
+  # roles/iam.serviceAccountUser   → act-as Cloud Run runtime SA during deploy
+  # roles/artifactregistry.writer  → push images to GAR
+  # roles/logging.logWriter        → write deploy logs
+  # roles/storage.objectAdmin      → upload source to gs://{project_id}_cloudbuild (required by gcloud builds submit)
   project_roles = [
-    "roles/artifactregistry.writer",
-    "roles/run.admin",
-    "roles/container.admin",
-    "roles/iam.serviceAccountUser",
     "roles/cloudbuild.builds.editor",
-    "roles/storage.admin",
+    "roles/run.admin",
+    "roles/iam.serviceAccountUser",
+    "roles/artifactregistry.writer",
     "roles/logging.logWriter",
+    "roles/storage.admin",
   ]
 
   labels = {
     workload = "github-actions"
-    repo     = "backend-api"
+    repo     = "singpost-app-tracking"
   }
 }

@@ -1,3 +1,5 @@
+data "google_project" "current" {}
+
 locals {
   repository_id = "${var.project_name}-${var.env}-${var.repository_name}"
 
@@ -42,6 +44,45 @@ resource "google_artifact_registry_repository" "repo" {
   depends_on = [
     google_project_service.artifactregistry
   ]
+}
+
+# Remote repository — proxies ghcr.io so Cloud Run can pull GHCR images.
+# Cloud Run only accepts images from gcr.io, docker.pkg.dev, or docker.io.
+resource "google_artifact_registry_repository" "ghcr_proxy" {
+  count         = var.enable_ghcr_proxy ? 1 : 0
+  project       = var.project_id
+  location      = var.region
+  repository_id = "${local.repository_id}-ghcr-proxy"
+  format        = "DOCKER"
+  mode          = "REMOTE_REPOSITORY"
+  labels        = local.common_labels
+
+  remote_repository_config {
+    docker_repository {
+      custom_repository {
+        uri = "https://ghcr.io"
+      }
+    }
+    upstream_credentials {
+      username_password_credentials {
+        username                = var.ghcr_username
+        password_secret_version = var.ghcr_pat_secret_version
+      }
+    }
+  }
+
+  depends_on = [
+    google_project_service.artifactregistry,
+    google_secret_manager_secret_iam_member.ar_ghcr_pat,
+  ]
+}
+
+# AR service agent needs to read the PAT secret to authenticate with GHCR.
+resource "google_secret_manager_secret_iam_member" "ar_ghcr_pat" {
+  count     = var.enable_ghcr_proxy ? 1 : 0
+  secret_id = "github-pat"
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:service-${data.google_project.current.number}@gcp-sa-artifactregistry.iam.gserviceaccount.com"
 }
 
 # Writers

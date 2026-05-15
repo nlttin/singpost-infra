@@ -9,6 +9,7 @@ terraform {
 dependency "gke" {
   config_path = "../gke"
 
+  mock_outputs_allowed_terraform_commands = ["apply", "plan", "destroy", "validate"]
   mock_outputs = {
     gke_app_service_account_email = "mock@developer.gserviceaccount.com"
   }
@@ -17,6 +18,7 @@ dependency "gke" {
 dependency "cloud-run" {
   config_path = "../cloud-run"
 
+  mock_outputs_allowed_terraform_commands = ["apply", "plan", "destroy", "validate"]
   mock_outputs = {
     cloud_run_service_account_email = "mock-cloud-run@developer.gserviceaccount.com"
   }
@@ -24,19 +26,17 @@ dependency "cloud-run" {
 
 inputs = {
   repository_name = "app"
-  description = "Main Docker repository"
-  format = "DOCKER"
-  immutable_tags = true
+  format          = "DOCKER"
+  immutable_tags  = false
 
-  writer_members = [
-    "serviceAccount:${dependency.gke.outputs.gke_app_service_account_email}",
-    "serviceAccount:${dependency.cloud-run.outputs.cloud_run_service_account_email}",
-  ]
+  writer_members = []
+  reader_members = []
 
-  reader_members = [
-    "serviceAccount:${dependency.gke.outputs.gke_app_service_account_email}",
-    "serviceAccount:${dependency.cloud-run.outputs.cloud_run_service_account_email}",
-  ]
+  # GHCR remote proxy — Cloud Run can't pull ghcr.io directly,
+  # this repo proxies ghcr.io so Cloud Run can pull via docker.pkg.dev.
+  enable_ghcr_proxy       = true
+  ghcr_username           = "nlttin"
+  ghcr_pat_secret_version = "projects/project-a8a37a94-04a7-44bf-a2c/secrets/github-pat/versions/latest"
 
   labels = {
     service = "artifact-registry"

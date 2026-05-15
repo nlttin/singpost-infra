@@ -15,26 +15,47 @@ variable "region" {
   type = string
 }
 
-# VPC 
+# Feature flags
+variable "enable_vpc_connector" {
+  type    = bool
+  default = false
+}
+
+variable "enable_cloud_sql" {
+  type    = bool
+  default = false
+}
+
+variable "enable_apigee_invoker" {
+  type    = bool
+  default = false
+}
+
+# VPC
 variable "vpc_network_self_link" {
-  type = string
+  type    = string
+  default = ""
 }
 
 # VPC Access Connector
 variable "vpc_connector_cidr" {
-  type = string
+  type    = string
+  default = "10.0.100.0/28"
 }
 
 variable "connector_min_instances" {
-  type = number
+  type    = number
+  default = 2
 }
 
 variable "connector_max_instances" {
-  type = number
+  type    = number
+  default = 3
 }
 
 variable "connector_machine_type" {
-  type = string
+  type    = string
+  default = "e2-micro"
 }
 
 # Cloud Run Service
@@ -49,11 +70,13 @@ variable "vpc_egress" {
 }
 
 variable "min_instance_count" {
-  type = number
+  type    = number
+  default = 0
 }
 
 variable "max_instance_count" {
-  type = number
+  type    = number
+  default = 1
 }
 
 variable "image" {
@@ -63,15 +86,17 @@ variable "image" {
 
 variable "container_port" {
   type    = number
-  default = 80
+  default = 8080
 }
 
 variable "cpu" {
-  type = string
+  type    = string
+  default = "1"
 }
 
 variable "memory" {
-  type = string
+  type    = string
+  default = "512Mi"
 }
 
 variable "timeout_seconds" {
@@ -92,14 +117,17 @@ variable "allow_unauthenticated" {
 
 # Database configuration
 variable "cloudsql_connection_name" {
-  type = string
+  type    = string
+  default = ""
 }
 
 # Secret Manager
 variable "db_password_secret_id" {
-  type = string
+  type    = string
+  default = ""
 }
 
 variable "db_password_secret_version" {
-  type = string
+  type    = string
+  default = ""
 }
