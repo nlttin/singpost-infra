@@ -9,6 +9,17 @@ remote_state {
   }
 }
 
+generate "backend" {
+  path      = "backend.tf"
+  if_exists = "overwrite"
+
+  contents = <<EOF
+terraform {
+  backend "gcs" {}
+}
+EOF
+}
+
 generate "provider_gcp" {
   path      = "provider.tf"
   if_exists = "overwrite"
