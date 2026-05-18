@@ -7,24 +7,19 @@ terraform {
 }
 
 inputs = {
-  # GitHub — start with AppTracking; Ingestion/SFTP as separate stacks later
   github_owner = "nlttin"
-  github_repo  = "singpost-app-tracking"
+  github_repositories = [
+    "singpost-app-tracking",
+    "singpost-app-ingestion",
+  ]
+  github_branch = "dev"
 
   # Workload Identity Federation
   workload_identity_pool_id          = "github-actions-pool"
   workload_identity_pool_provider_id = "github-actions-provider"
 
-  # Service Account
   service_account_id = "singpost-dev-github-actions-sa"
 
-  # IAM roles for GitHub Actions SA
-  # roles/cloudbuild.builds.editor → trigger Cloud Build jobs
-  # roles/run.admin                → deploy to Cloud Run
-  # roles/iam.serviceAccountUser   → act-as Cloud Run runtime SA during deploy
-  # roles/artifactregistry.writer  → push images to GAR
-  # roles/logging.logWriter        → write deploy logs
-  # roles/storage.objectAdmin      → upload source to gs://{project_id}_cloudbuild (required by gcloud builds submit)
   project_roles = [
     "roles/cloudbuild.builds.editor",
     "roles/run.admin",
@@ -34,8 +29,12 @@ inputs = {
     "roles/storage.admin",
   ]
 
+  cloudbuild_sa_emails = [
+    "dev-app-tracking-build-sa@project-a8a37a94-04a7-44bf-a2c.iam.gserviceaccount.com",
+    "dev-app-ingestion-build-sa@project-a8a37a94-04a7-44bf-a2c.iam.gserviceaccount.com",
+  ]
+
   labels = {
     workload = "github-actions"
-    repo     = "singpost-app-tracking"
   }
 }
