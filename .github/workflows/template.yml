@@ -44,15 +44,15 @@ jobs:
 
   gitleaks-scan:
     needs: checkout-code
-    uses: SINGAPORE-POST-LIMITED/singpost-cicd-components/.github/workflows/reusable-workflow-gitleaks.yml@dev
+    uses: nlttin/singpost-cicd-components/.github/workflows/reusable-workflow-gitleaks.yml@dev
     with:
-      scan_mode: full
+      scan_mode: pr
       fail-on-detection: false
     secrets: inherit
 
   checkov-scan:
     needs: checkout-code
-    uses: SINGAPORE-POST-LIMITED/singpost-cicd-components/.github/workflows/reusable-workflow-checkov.yml@feature/checkov
+    uses: nlttin/singpost-cicd-components/.github/workflows/reusable-workflow-checkov.yml@feature/checkov
     with:
       config-path: ./.github/config/checkov.yml
     secrets: inherit
