@@ -52,7 +52,7 @@ jobs:
 
   checkov-scan:
     needs: checkout-code
-    uses: nlttin/singpost-cicd-components/.github/workflows/reusable-workflow-checkov.yml@feature/checkov
+    uses: nlttin/singpost-cicd-components/.github/workflows/reusable-workflow-checkov.yml@dev
     with:
       config-path: ./.github/config/checkov.yml
     secrets: inherit
