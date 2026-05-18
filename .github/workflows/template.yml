@@ -5,6 +5,7 @@ on:
     branches:
       - dev
       - main
+      - feat/implement-terraform-apigee-cicd 
   pull_request:
     branches:
       - main
