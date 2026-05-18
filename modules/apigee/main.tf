@@ -60,22 +60,4 @@ resource "google_apigee_instance_attachment" "env_attachment" {
   instance_id = google_apigee_instance.apigee_instance.id
   environment = google_apigee_environment.env.name
 }
-
-# API Proxy
-resource "google_apigee_api" "cloudrun_proxy" {
-  name = "${var.project_name}-${var.env}-cloudrun-proxy"
-
-  org_id        = google_apigee_organization.apigee_org.id
-  config_bundle = "apiproxy.zip"
-
-  depends_on = [
-    google_apigee_environment.env
-  ]
-}
-
-resource "google_apigee_api_deployment" "deployment" {
-  org_id      = google_apigee_organization.apigee_org.id
-  environment = google_apigee_environment.env.name
-  revision    = google_apigee_api.cloudrun_proxy.latest_revision_id
-  proxy_id    = google_apigee_api.cloudrun_proxy.id
-}
+# Proxy bundle deployment is handled by apigeecli in CI/CD (see .github/workflows/template.yml)

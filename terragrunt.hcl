@@ -1,13 +1,13 @@
-# remote_state {
-#   backend = "gcs"
+remote_state {
+  backend = "gcs"
 
-#   config = {
-#     bucket  = "singpost-tfstate"
-#     prefix  = "${path_relative_to_include()}"
-#     project = "your-gcp-project-id"
-#     location = "asia-southeast1"
-#   }
-# }
+  config = {
+    bucket   = "sp-logistic-tfstate"
+    prefix   = "${path_relative_to_include()}"
+    project  = "project-a8a37a94-04a7-44bf-a2c"
+    location = "asia-southeast1"
+  }
+}
 
 generate "provider_gcp" {
   path      = "provider.tf"

@@ -30,7 +30,3 @@ variable "runtime_cidr_range" {
   type = string
 }
 
-# Backend
-variable "cloud_run_url" {
-  type = string
-}

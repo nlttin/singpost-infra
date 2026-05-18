@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - dev
+      - main
   pull_request:
     branches:
       - main
@@ -14,20 +15,19 @@ permissions:
   security-events: write
   actions: read
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
-jobs:
-  # This workflow contains a single job called "build"
-  checkout-code:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
+env:
+  TF_VERSION: "1.14.0"
+  TG_VERSION: "0.77.3"
 
+jobs:
   # ==========================================
   # PARALLEL STAGE 1: FAST CHECKS
   # ==========================================
+  checkout-code:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
   gitleaks-scan:
     needs: checkout-code
     uses: SINGAPORE-POST-LIMITED/singpost-cicd-components/.github/workflows/reusable-workflow-gitleaks.yml@dev
@@ -51,29 +51,178 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "Mocking CodeQL & SonarQube"
-  #    - run: echo "Mocking Checkov"
 
   # ==========================================
-  # STAGE 3: DEPLOYMENTS
+  # STAGE 3: DEPLOY DEV
   # ==========================================
   deploy-dev:
     needs: security-scans
-    if: github.ref == 'refs/heads/dev'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
     environment: development
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TG_DIR: live/dev/gcp
+      APIGEE_ENV: sp-logistic-apigee-env-dev
+      APIGEE_PROXY: sp-logistic-dev-cloudrun-proxy
+      CLOUD_RUN_SERVICE: sp-logistic-dev-cloudrun-app
+      REGION: asia-southeast1
     steps:
-      - run: echo "Mocking Terraform DEV"
-      - run: echo "Mocking Apigee DEV"
-      - run: echo "Mocking Cloud Deploy GKE DEV"
+      - uses: actions/checkout@v4
 
+      - name: Authenticate to GCP via WIF
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SA_EMAIL }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Install Terragrunt
+        run: |
+          curl -sL "https://github.com/gruntwork-io/terragrunt/releases/download/v${TG_VERSION}/terragrunt_linux_amd64" \
+            -o /usr/local/bin/terragrunt
+          chmod +x /usr/local/bin/terragrunt
+          terragrunt --version
+
+      - name: Terragrunt Apply DEV
+        run: |
+          cd ${{ env.TG_DIR }}
+          terragrunt run-all apply --terragrunt-non-interactive
+        env:
+          TERRAGRUNT_NON_INTERACTIVE: "true"
+          TF_INPUT: "false"
+
+      - name: Get Cloud Run URL
+        id: cloud_run
+        run: |
+          URL=$(gcloud run services describe ${{ env.CLOUD_RUN_SERVICE }} \
+            --region ${{ env.REGION }} \
+            --project ${{ secrets.GCP_PROJECT }} \
+            --format 'value(status.url)')
+          echo "url=${URL}" >> $GITHUB_OUTPUT
+
+      - name: Package Apigee proxy bundle
+        run: |
+          sed "s|CLOUD_RUN_URL_PLACEHOLDER|${{ steps.cloud_run.outputs.url }}|g" \
+            apigee/apiproxy/targets/default.xml > /tmp/default.xml
+          cp /tmp/default.xml apigee/apiproxy/targets/default.xml
+          cd apigee && zip -r ../apiproxy.zip apiproxy/
+
+      - name: Install apigeecli
+        run: |
+          curl -L https://raw.githubusercontent.com/apigee/apigeecli/main/downloadLatest.sh | sh
+          echo "$HOME/.apigeecli/bin" >> $GITHUB_PATH
+
+      - name: Deploy Apigee proxy DEV
+        run: |
+          TOKEN=$(gcloud auth print-access-token)
+          apigeecli apis create bundle \
+            --name "${{ env.APIGEE_PROXY }}" \
+            --proxy-zip apiproxy.zip \
+            --org ${{ secrets.GCP_PROJECT }} \
+            --token "$TOKEN"
+          apigeecli apis deploy \
+            --name "${{ env.APIGEE_PROXY }}" \
+            --env "${{ env.APIGEE_ENV }}" \
+            --org ${{ secrets.GCP_PROJECT }} \
+            --token "$TOKEN" \
+            --ovr --wait
+
+  # ==========================================
+  # STAGE 3: DEPLOY PROD
+  # ==========================================
   deploy-prod:
-    if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
+    needs: security-scans
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TG_DIR: live/prod/gcp
+      APIGEE_ENV: sp-logistic-apigee-env-prod
+      APIGEE_PROXY: sp-logistic-prod-cloudrun-proxy
+      CLOUD_RUN_SERVICE: sp-logistic-prod-cloudrun-app
+      REGION: asia-southeast1
     steps:
-      - run: echo "Mocking Terraform PROD"
-      - run: echo "Mocking Apigee PROD"
-      - run: echo "Mocking Cloud Deploy GKE PROD"
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP via WIF
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SA_EMAIL }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Install Terragrunt
+        run: |
+          curl -sL "https://github.com/gruntwork-io/terragrunt/releases/download/v${TG_VERSION}/terragrunt_linux_amd64" \
+            -o /usr/local/bin/terragrunt
+          chmod +x /usr/local/bin/terragrunt
+          terragrunt --version
+
+      - name: Terragrunt Apply PROD
+        run: |
+          cd ${{ env.TG_DIR }}
+          terragrunt run-all apply --terragrunt-non-interactive
+        env:
+          TERRAGRUNT_NON_INTERACTIVE: "true"
+          TF_INPUT: "false"
+
+      - name: Get Cloud Run URL
+        id: cloud_run
+        run: |
+          URL=$(gcloud run services describe ${{ env.CLOUD_RUN_SERVICE }} \
+            --region ${{ env.REGION }} \
+            --project ${{ secrets.GCP_PROJECT }} \
+            --format 'value(status.url)')
+          echo "url=${URL}" >> $GITHUB_OUTPUT
+
+      - name: Package Apigee proxy bundle
+        run: |
+          sed "s|CLOUD_RUN_URL_PLACEHOLDER|${{ steps.cloud_run.outputs.url }}|g" \
+            apigee/apiproxy/targets/default.xml > /tmp/default.xml
+          cp /tmp/default.xml apigee/apiproxy/targets/default.xml
+          cd apigee && zip -r ../apiproxy.zip apiproxy/
+
+      - name: Install apigeecli
+        run: |
+          curl -L https://raw.githubusercontent.com/apigee/apigeecli/main/downloadLatest.sh | sh
+          echo "$HOME/.apigeecli/bin" >> $GITHUB_PATH
+
+      - name: Deploy Apigee proxy PROD
+        run: |
+          TOKEN=$(gcloud auth print-access-token)
+          apigeecli apis create bundle \
+            --name "${{ env.APIGEE_PROXY }}" \
+            --proxy-zip apiproxy.zip \
+            --org ${{ secrets.GCP_PROJECT }} \
+            --token "$TOKEN"
+          apigeecli apis deploy \
+            --name "${{ env.APIGEE_PROXY }}" \
+            --env "${{ env.APIGEE_ENV }}" \
+            --org ${{ secrets.GCP_PROJECT }} \
+            --token "$TOKEN" \
+            --ovr --wait
 
   # ==========================================
   # STAGE 4: NOTIFY

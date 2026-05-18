@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<SpikeArrest name="SpikeArrest-1">
+  <DisplayName>SpikeArrest-1</DisplayName>
+  <!-- 30 requests per minute per client IP -->
+  <Rate>30pm</Rate>
+  <Identifier ref="client.ip"/>
+  <UseEffectiveCount>true</UseEffectiveCount>
+</SpikeArrest>
