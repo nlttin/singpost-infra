@@ -88,11 +88,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Authenticate to GCP via WIF
+      - name: Authenticate to GCP (bootstrap via SA Key)
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.WIF_SA_EMAIL }}
+          credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
