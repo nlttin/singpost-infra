@@ -22,7 +22,7 @@ inputs = {
 
   project_roles = [
     "roles/cloudbuild.builds.editor",
-    "roles/container.developer",
+    "roles/run.admin",
     "roles/iam.serviceAccountUser",
     "roles/artifactregistry.writer",
     "roles/logging.logWriter",

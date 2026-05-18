@@ -5,6 +5,7 @@ on:
     branches:
       - dev
       - main
+      - feat/implement-terraform-apigee-cicd 
   pull_request:
     branches:
       - main
@@ -80,9 +81,9 @@ jobs:
       id-token: write
     env:
       TG_DIR: live/dev/gcp
-      GKE_CLUSTER: sp-logistic-dev-gke
       APIGEE_ENV: sp-logistic-apigee-env-dev
-      APIGEE_PROXY: sp-logistic-dev-gke-proxy
+      APIGEE_PROXY: sp-logistic-dev-cloudrun-proxy
+      CLOUD_RUN_SERVICE: sp-logistic-dev-cloudrun-app
       REGION: asia-southeast1
     steps:
       - uses: actions/checkout@v4
@@ -117,35 +118,28 @@ jobs:
           TERRAGRUNT_NON_INTERACTIVE: "true"
           TF_INPUT: "false"
 
-      - name: Configure kubectl
+      - name: Get Cloud Run URL
+        id: cloud_run
         run: |
-          gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+          URL=$(gcloud run services describe ${{ env.CLOUD_RUN_SERVICE }} \
             --region ${{ env.REGION }} \
-            --project ${{ secrets.GCP_PROJECT }}
-
-      - name: Get GKE Ingress URL
-        id: gke
-        run: |
-          URL=$(kubectl get service sp-logistic-dev-svc -n default \
-            -o jsonpath='http://{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+            --project ${{ secrets.GCP_PROJECT }} \
+            --format 'value(status.url)')
           echo "url=${URL}" >> $GITHUB_OUTPUT
 
       - name: Package Apigee proxy bundle
-        if: steps.gke.outputs.url != ''
         run: |
-          sed "s|BACKEND_URL_PLACEHOLDER|${{ steps.gke.outputs.url }}|g" \
+          sed "s|CLOUD_RUN_URL_PLACEHOLDER|${{ steps.cloud_run.outputs.url }}|g" \
             apigee/apiproxy/targets/default.xml > /tmp/default.xml
           cp /tmp/default.xml apigee/apiproxy/targets/default.xml
           cd apigee && zip -r ../apiproxy.zip apiproxy/
 
       - name: Install apigeecli
-        if: steps.gke.outputs.url != ''
         run: |
           curl -L https://raw.githubusercontent.com/apigee/apigeecli/main/downloadLatest.sh | sh
           echo "$HOME/.apigeecli/bin" >> $GITHUB_PATH
 
       - name: Deploy Apigee proxy DEV
-        if: steps.gke.outputs.url != ''
         run: |
           TOKEN=$(gcloud auth print-access-token)
           apigeecli apis create bundle \
@@ -173,9 +167,9 @@ jobs:
       id-token: write
     env:
       TG_DIR: live/sit/gcp
-      GKE_CLUSTER: sp-logistic-sit-gke
       APIGEE_ENV: sp-logistic-apigee-env-sit
-      APIGEE_PROXY: sp-logistic-sit-gke-proxy
+      APIGEE_PROXY: sp-logistic-sit-cloudrun-proxy
+      CLOUD_RUN_SERVICE: sp-logistic-sit-cloudrun-app
       REGION: asia-southeast1
     steps:
       - uses: actions/checkout@v4
@@ -210,35 +204,28 @@ jobs:
           TERRAGRUNT_NON_INTERACTIVE: "true"
           TF_INPUT: "false"
 
-      - name: Configure kubectl
+      - name: Get Cloud Run URL
+        id: cloud_run
         run: |
-          gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+          URL=$(gcloud run services describe ${{ env.CLOUD_RUN_SERVICE }} \
             --region ${{ env.REGION }} \
-            --project ${{ secrets.GCP_PROJECT }}
-
-      - name: Get GKE Ingress URL
-        id: gke
-        run: |
-          URL=$(kubectl get service sp-logistic-sit-svc -n default \
-            -o jsonpath='http://{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+            --project ${{ secrets.GCP_PROJECT }} \
+            --format 'value(status.url)')
           echo "url=${URL}" >> $GITHUB_OUTPUT
 
       - name: Package Apigee proxy bundle
-        if: steps.gke.outputs.url != ''
         run: |
-          sed "s|BACKEND_URL_PLACEHOLDER|${{ steps.gke.outputs.url }}|g" \
+          sed "s|CLOUD_RUN_URL_PLACEHOLDER|${{ steps.cloud_run.outputs.url }}|g" \
             apigee/apiproxy/targets/default.xml > /tmp/default.xml
           cp /tmp/default.xml apigee/apiproxy/targets/default.xml
           cd apigee && zip -r ../apiproxy.zip apiproxy/
 
       - name: Install apigeecli
-        if: steps.gke.outputs.url != ''
         run: |
           curl -L https://raw.githubusercontent.com/apigee/apigeecli/main/downloadLatest.sh | sh
           echo "$HOME/.apigeecli/bin" >> $GITHUB_PATH
 
       - name: Deploy Apigee proxy SIT
-        if: steps.gke.outputs.url != ''
         run: |
           TOKEN=$(gcloud auth print-access-token)
           apigeecli apis create bundle \
@@ -266,9 +253,9 @@ jobs:
       id-token: write
     env:
       TG_DIR: live/uat/gcp
-      GKE_CLUSTER: sp-logistic-uat-gke
       APIGEE_ENV: sp-logistic-apigee-env-uat
-      APIGEE_PROXY: sp-logistic-uat-gke-proxy
+      APIGEE_PROXY: sp-logistic-uat-cloudrun-proxy
+      CLOUD_RUN_SERVICE: sp-logistic-uat-cloudrun-app
       REGION: asia-southeast1
     steps:
       - uses: actions/checkout@v4
@@ -303,35 +290,28 @@ jobs:
           TERRAGRUNT_NON_INTERACTIVE: "true"
           TF_INPUT: "false"
 
-      - name: Configure kubectl
+      - name: Get Cloud Run URL
+        id: cloud_run
         run: |
-          gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+          URL=$(gcloud run services describe ${{ env.CLOUD_RUN_SERVICE }} \
             --region ${{ env.REGION }} \
-            --project ${{ secrets.GCP_PROJECT }}
-
-      - name: Get GKE Ingress URL
-        id: gke
-        run: |
-          URL=$(kubectl get service sp-logistic-uat-svc -n default \
-            -o jsonpath='http://{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+            --project ${{ secrets.GCP_PROJECT }} \
+            --format 'value(status.url)')
           echo "url=${URL}" >> $GITHUB_OUTPUT
 
       - name: Package Apigee proxy bundle
-        if: steps.gke.outputs.url != ''
         run: |
-          sed "s|BACKEND_URL_PLACEHOLDER|${{ steps.gke.outputs.url }}|g" \
+          sed "s|CLOUD_RUN_URL_PLACEHOLDER|${{ steps.cloud_run.outputs.url }}|g" \
             apigee/apiproxy/targets/default.xml > /tmp/default.xml
           cp /tmp/default.xml apigee/apiproxy/targets/default.xml
           cd apigee && zip -r ../apiproxy.zip apiproxy/
 
       - name: Install apigeecli
-        if: steps.gke.outputs.url != ''
         run: |
           curl -L https://raw.githubusercontent.com/apigee/apigeecli/main/downloadLatest.sh | sh
           echo "$HOME/.apigeecli/bin" >> $GITHUB_PATH
 
       - name: Deploy Apigee proxy UAT
-        if: steps.gke.outputs.url != ''
         run: |
           TOKEN=$(gcloud auth print-access-token)
           apigeecli apis create bundle \
@@ -359,9 +339,9 @@ jobs:
       id-token: write
     env:
       TG_DIR: live/preprod/gcp
-      GKE_CLUSTER: sp-logistic-preprod-gke
       APIGEE_ENV: sp-logistic-apigee-env-preprod
-      APIGEE_PROXY: sp-logistic-preprod-gke-proxy
+      APIGEE_PROXY: sp-logistic-preprod-cloudrun-proxy
+      CLOUD_RUN_SERVICE: sp-logistic-preprod-cloudrun-app
       REGION: asia-southeast1
     steps:
       - uses: actions/checkout@v4
@@ -396,35 +376,28 @@ jobs:
           TERRAGRUNT_NON_INTERACTIVE: "true"
           TF_INPUT: "false"
 
-      - name: Configure kubectl
+      - name: Get Cloud Run URL
+        id: cloud_run
         run: |
-          gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+          URL=$(gcloud run services describe ${{ env.CLOUD_RUN_SERVICE }} \
             --region ${{ env.REGION }} \
-            --project ${{ secrets.GCP_PROJECT }}
-
-      - name: Get GKE Ingress URL
-        id: gke
-        run: |
-          URL=$(kubectl get service sp-logistic-preprod-svc -n default \
-            -o jsonpath='http://{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+            --project ${{ secrets.GCP_PROJECT }} \
+            --format 'value(status.url)')
           echo "url=${URL}" >> $GITHUB_OUTPUT
 
       - name: Package Apigee proxy bundle
-        if: steps.gke.outputs.url != ''
         run: |
-          sed "s|BACKEND_URL_PLACEHOLDER|${{ steps.gke.outputs.url }}|g" \
+          sed "s|CLOUD_RUN_URL_PLACEHOLDER|${{ steps.cloud_run.outputs.url }}|g" \
             apigee/apiproxy/targets/default.xml > /tmp/default.xml
           cp /tmp/default.xml apigee/apiproxy/targets/default.xml
           cd apigee && zip -r ../apiproxy.zip apiproxy/
 
       - name: Install apigeecli
-        if: steps.gke.outputs.url != ''
         run: |
           curl -L https://raw.githubusercontent.com/apigee/apigeecli/main/downloadLatest.sh | sh
           echo "$HOME/.apigeecli/bin" >> $GITHUB_PATH
 
       - name: Deploy Apigee proxy PREPROD
-        if: steps.gke.outputs.url != ''
         run: |
           TOKEN=$(gcloud auth print-access-token)
           apigeecli apis create bundle \
@@ -454,9 +427,9 @@ jobs:
       id-token: write
     env:
       TG_DIR: live/prod/gcp
-      GKE_CLUSTER: sp-logistic-prod-gke
       APIGEE_ENV: sp-logistic-apigee-env-prod
-      APIGEE_PROXY: sp-logistic-prod-gke-proxy
+      APIGEE_PROXY: sp-logistic-prod-cloudrun-proxy
+      CLOUD_RUN_SERVICE: sp-logistic-prod-cloudrun-app
       REGION: asia-southeast1
     steps:
       - uses: actions/checkout@v4
@@ -491,35 +464,28 @@ jobs:
           TERRAGRUNT_NON_INTERACTIVE: "true"
           TF_INPUT: "false"
 
-      - name: Configure kubectl
+      - name: Get Cloud Run URL
+        id: cloud_run
         run: |
-          gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+          URL=$(gcloud run services describe ${{ env.CLOUD_RUN_SERVICE }} \
             --region ${{ env.REGION }} \
-            --project ${{ secrets.GCP_PROJECT }}
-
-      - name: Get GKE Ingress URL
-        id: gke
-        run: |
-          URL=$(kubectl get service sp-logistic-prod-svc -n default \
-            -o jsonpath='http://{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+            --project ${{ secrets.GCP_PROJECT }} \
+            --format 'value(status.url)')
           echo "url=${URL}" >> $GITHUB_OUTPUT
 
       - name: Package Apigee proxy bundle
-        if: steps.gke.outputs.url != ''
         run: |
-          sed "s|BACKEND_URL_PLACEHOLDER|${{ steps.gke.outputs.url }}|g" \
+          sed "s|CLOUD_RUN_URL_PLACEHOLDER|${{ steps.cloud_run.outputs.url }}|g" \
             apigee/apiproxy/targets/default.xml > /tmp/default.xml
           cp /tmp/default.xml apigee/apiproxy/targets/default.xml
           cd apigee && zip -r ../apiproxy.zip apiproxy/
 
       - name: Install apigeecli
-        if: steps.gke.outputs.url != ''
         run: |
           curl -L https://raw.githubusercontent.com/apigee/apigeecli/main/downloadLatest.sh | sh
           echo "$HOME/.apigeecli/bin" >> $GITHUB_PATH
 
       - name: Deploy Apigee proxy PROD
-        if: steps.gke.outputs.url != ''
         run: |
           TOKEN=$(gcloud auth print-access-token)
           apigeecli apis create bundle \
