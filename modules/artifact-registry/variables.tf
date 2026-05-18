@@ -63,8 +63,8 @@ variable "ghcr_pat_secret_version" {
   default = ""
 }
 
-# # CMEK
-# variable "kms_key_name" {
-#   type    = string
-#   default = null
-# }
+# CMEK — set to a KMS key resource name to enable encryption at rest
+variable "kms_key_name" {
+  type    = string
+  default = null
+}

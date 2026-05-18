@@ -53,16 +53,16 @@ resource "google_iam_workload_identity_pool_provider" "github_actions" {
   }
 
   attribute_mapping = {
-    "google.subject"       = "assertion.sub"
-    "attribute.repository" = "assertion.repository"
-    "attribute.ref"        = "assertion.ref"
-    "attribute.actor"      = "assertion.actor"
-    "attribute.owner"      = "assertion.repository_owner"
+    "google.subject"              = "assertion.sub"
+    "attribute.repository"        = "assertion.repository"
+    "attribute.repository_owner"  = "assertion.repository_owner"
+    "attribute.ref"               = "assertion.ref"
+    "attribute.actor"             = "assertion.actor"
   }
 
-  # Supports multiple repos — add branch restriction back for production.
+  # Restricts to specific org, specific repos, and specific branch.
   # Docs: https://cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines#conditions
-  attribute_condition = "assertion.repository in [${join(", ", formatlist("\"%s/%s\"", var.github_owner, var.github_repositories))}] && assertion.ref == \"refs/heads/${var.github_branch}\""
+  attribute_condition = "attribute.repository_owner == \"${var.github_owner}\" && attribute.repository in [${join(", ", formatlist("\"%s/%s\"", var.github_owner, var.github_repositories))}] && attribute.ref == \"refs/heads/${var.github_branch}\""
 }
 
 resource "google_service_account" "github_actions" {

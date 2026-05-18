@@ -28,10 +28,9 @@ resource "google_artifact_registry_repository" "repo" {
   repository_id = local.repository_id
   format        = var.format
 
-  mode   = "STANDARD_REPOSITORY"
-  labels = local.common_labels
-
-  #   kms_key_name = var.kms_key_name
+  mode         = "STANDARD_REPOSITORY"
+  labels       = local.common_labels
+  kms_key_name = var.kms_key_name
 
   dynamic "docker_config" {
     for_each = var.format == "DOCKER" ? [1] : []
