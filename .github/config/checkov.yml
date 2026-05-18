@@ -5,9 +5,35 @@ framework:
 
 quiet: true
 
-# skip-check:
-
 soft-fail: false
 
 output:
   - cli
+  - github_failed_only
+
+skip-check:
+  # GKE Autopilot manages these automatically — not configurable by users
+  - CKV_GCP_12   # Network Policy (Autopilot)
+  - CKV_GCP_13   # Client certificate auth (Autopilot)
+  - CKV_GCP_61   # VPC Flow Logs intranode visibility (Autopilot)
+  - CKV_GCP_65   # RBAC Google Groups (Autopilot)
+  - CKV_GCP_66   # Binary Authorization (Autopilot)
+  - CKV_GCP_69   # GKE Metadata Server (Autopilot)
+
+  # IAM intentional — required for GitHub Actions WIF service account
+  - CKV_GCP_41   # SA User role at project level
+  - CKV_GCP_49   # Roles impersonating SA at project level
+
+  # workflow_dispatch inputs required for manual environment selection
+  - CKV_GHA_7
+
+  # ssl_mode = "ENCRYPTED_ONLY" is the modern replacement for require_ssl = true.
+  # Checkov 3.2.x only recognizes the deprecated require_ssl field, not ssl_mode.
+  - CKV_GCP_6
+
+  # Condition is secure (org + repo + branch restricted) but uses Terraform join()/formatlist()
+  # which checkov cannot statically evaluate, causing a false negative.
+  - CKV_GCP_125
+
+  # False positive — values are mock placeholders, not real secrets
+  - CKV_SECRET_6
