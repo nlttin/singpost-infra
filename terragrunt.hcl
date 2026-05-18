@@ -1,25 +1,3 @@
-remote_state {
-  backend = "gcs"
-
-  config = {
-    bucket   = "sp-logistic-tfstate"
-    prefix   = "${path_relative_to_include()}"
-    project  = "project-a8a37a94-04a7-44bf-a2c"
-    location = "asia-southeast1"
-  }
-}
-
-generate "backend" {
-  path      = "backend.tf"
-  if_exists = "overwrite"
-
-  contents = <<EOF
-terraform {
-  backend "gcs" {}
-}
-EOF
-}
-
 generate "provider_gcp" {
   path      = "provider.tf"
   if_exists = "overwrite"
