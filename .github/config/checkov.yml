@@ -27,5 +27,13 @@ skip-check:
   # workflow_dispatch inputs required for manual environment selection
   - CKV_GHA_7
 
+  # ssl_mode = "ENCRYPTED_ONLY" is the modern replacement for require_ssl = true.
+  # Checkov 3.2.x only recognizes the deprecated require_ssl field, not ssl_mode.
+  - CKV_GCP_6
+
+  # Condition is secure (org + repo + branch restricted) but uses Terraform join()/formatlist()
+  # which checkov cannot statically evaluate, causing a false negative.
+  - CKV_GCP_125
+
   # False positive — values are mock placeholders, not real secrets
   - CKV_SECRET_6
